@@ -1,66 +1,61 @@
-## ----load-packages-data------------------------------------------------
 
-# load packages
-# rgdal: for vector work; sp package should always load with rgdal. 
-library(rgdal)  
-# raster: for metadata/attributes- vectors or rasters
-library(raster)   
 
-# set working directory to data folder
-# setwd("pathToDirHere")
+#安装R包
+# install.packages("sf")
+# install.packages("raster")
 
-# Import a polygon shapefile 
-aoiBoundary_HARV <- readOGR("NEON-DS-Site-Layout-Files/HARV",
-                            "HarClip_UTMZ18", stringsAsFactors = T)
+#加载R包
+library(sf)
+library(raster) 
 
-# Import a line shapefile
-lines_HARV <- readOGR( "NEON-DS-Site-Layout-Files/HARV", "HARV_roads", stringsAsFactors = T)
-
-# Import a point shapefile 
-point_HARV <- readOGR("NEON-DS-Site-Layout-Files/HARV",
-                      "HARVtower_UTM18N", stringsAsFactors = T)
+# 导入一个面 shapefile
+aoiBoundary_HARV <- st_read("NEON-DS-Site-Layout-Files/HARV/HarClip_UTMZ18.shp")
+# 导入一个线 shapefile
+lines_HARV <- st_read( "NEON-DS-Site-Layout-Files/HARV/HARV_roads.shp")
+# 导入一个点 shapefile 
+point_HARV <- st_read("NEON-DS-Site-Layout-Files/HARV/HARVtower_UTM18N.shp")
 
 
 
-## ----plot-unique-lines, fig.cap="Roads and trails at NEON Harvard Forest Field Site with color and line width varied by attribute factor value."----
 
-# view the factor levels
+
+# 转换为因子
+lines_HARV$TYPE <- as.factor(lines_HARV$TYPE)
+# 查看因子水平
 levels(lines_HARV$TYPE)
-# create vector of line width values
+# 创建线宽值向量
 lineWidth <- c(2,4,3,8)[lines_HARV$TYPE]
-# view vector
 lineWidth
 
-# create a color palette of 4 colors - one for each factor level
+# 创建由 4 种颜色组成的调色板--每个因子级别一种颜色
 roadPalette <- c("blue","green","grey","purple")
 roadPalette
-# create a vector of colors - one for each feature in our vector object
-# according to its attribute value
+# 创建一个颜色矢量--矢量对象中的每个特征都有一个颜色矢量
+# 根据其属性值
 roadColors <- c("blue","green","grey","purple")[lines_HARV$TYPE]
 roadColors
 
-# create vector of line width values
+# 创建线宽值向量
 lineWidth <- c(2,4,3,8)[lines_HARV$TYPE]
-# view vector
 lineWidth
 
-# in this case, boardwalk (the first level) is the widest.
-plot(lines_HARV, 
+# 在这种情况下，boardwalk (the first level)是最宽的
+plot(st_geometry(lines_HARV), 
      col=roadColors,
      main="NEON Harvard Forest Field Site\n Roads & Trails \nLine Width Varies by Type Attribute Value",
      lwd=lineWidth)
 
 
 
-## ----add-legend-to-plot, fig.cap="Roads and trails at NEON Harvard Forest Field Site with color varied by attribute factor value and with a default legend."----
-plot(lines_HARV, 
+## ----添加图例
+plot(st_geometry(lines_HARV), 
      col=roadColors,
      main="NEON Harvard Forest Field Site\n Roads & Trails\n Default Legend")
 
-# we can use the color object that we created above to color the legend objects
+# 我们可以使用上面创建的颜色对象来为图例着色
 roadPalette
 
-# add a legend to our map
+# 为地图添加图例
 legend("bottomright", 
        legend=levels(lines_HARV$TYPE), 
        fill=roadPalette, 
@@ -69,57 +64,57 @@ legend("bottomright",
 
 
 
-## ----plot-many-shapefiles, fig.cap="Roads and tower location at NEON Harvard Forest Field Site with color varied by attribute type."----
-
-# Plot multiple shapefiles
-plot(aoiBoundary_HARV, 
+# 绘制坐个shapefile
+plot(st_geometry(aoiBoundary_HARV), 
      col = "grey93", 
      border="grey",
      main="NEON Harvard Forest Field Site")
 
-plot(lines_HARV, 
+plot(st_geometry(lines_HARV), 
      col=roadColors,
      add = TRUE)
 
-plot(point_HARV, 
+plot(st_geometry(point_HARV), 
      add  = TRUE, 
      pch = 19, 
      col = "purple")
 
-# assign plot to an object for easy modification!
+# 将绘图分配给一个对象，以方便修改！
 plot_HARV<- recordPlot()
 
 
 
-## ----create-custom-labels, fig.cap="Roads and tower location at NEON Harvard Forest Field Site with color varied by attribute type and with a modified legend."----
+## 创建自定义标签
 
-# create a list of all labels
+# 创建所有标签的列表
 labels <- c("Tower", "AOI", levels(lines_HARV$TYPE))
 labels
 
-# render plot
+# 绘制地图
 plot_HARV
 
-# add a legend to our map
+# 为地图添加图例
 legend("bottomright", 
        legend=labels, 
        bty="n", # turn off the legend border
        cex=.8) # decrease the font / legend size
 
 
-## ----add-colors, fig.cap="Roads and tower location at NEON Harvard Forest Field Site with color and a modified legend varied by attribute type."----
 
-# we have a list of colors that we used above - we can use it in the legend
+
+## ----添加颜色
+
+# 我们已经有了上面使用过的颜色列表 - 我们可以在图例中使用它
 roadPalette
 
-# create a list of colors to use 
+# 创建要使用的颜色列表
 plotColors <- c("purple", "grey", roadPalette)
 plotColors
 
-# render plot
+# 绘制地图
 plot_HARV
 
-# add a legend to our map
+# 为地图添加图例
 legend("bottomright", 
        legend=labels, 
        fill=plotColors,
@@ -128,18 +123,18 @@ legend("bottomright",
 
 
 
-## ----custom-symbols, fig.cap="Roads and tower location at NEON Harvard Forest Field Site with color and a modified legend varied by attribute type; each symbol on the legend corresponds to the shapefile type (i.e., tower = point)."----
+## ----自定义符号
 
-# create a list of pch values
-# these are the symbols that will be used for each legend value
-# ?pch will provide more information on values
+# 创建 pch 值列表
+# 这些符号将用于每个图例值
+# ?pch 将提供有关值的更多信息
 plotSym <- c(16,15,15,15,15,15)
 plotSym
 
-# Plot multiple shapefiles
+# 绘制多个 shapefiles
 plot_HARV
 
-# to create a custom legend, we need to fake it
+# 要创建自定义图例，我们需要伪造它
 legend("bottomright", 
        legend=labels,
        pch=plotSym, 
@@ -149,17 +144,17 @@ legend("bottomright",
 
 
 
-## ----refine-legend, fig.cap="Roads and tower location at NEON Harvard Forest Field Site with color and a modified legend varied by attribute type; each symbol on the legend corresponds to the shapefile type [i.e., tower = point, roads = lines]."----
-# create line object
+## ----修改图例
+# 创建 line object
 lineLegend = c(NA,NA,1,1,1,1)
 lineLegend
 plotSym <- c(16,15,NA,NA,NA,NA)
 plotSym
 
-# plot multiple shapefiles
+# 绘制多个 shapefiles
 plot_HARV
 
-# build a custom legend
+# 创建自定义图例
 legend("bottomright", 
        legend=labels, 
        lty = lineLegend,
@@ -169,81 +164,4 @@ legend("bottomright",
        cex=.8)
 
 
-
-## ----challenge-code-plot-color, results="hide", warning= FALSE, echo=FALSE, fig.cap= c("Roads and study plots at NEON Harvard Forest Field Site with color and a modified legend varied by attribute type; each symbol on the legend corresponds to the shapefile type [i.e., soil plots = points, roads = lines].", "Roads and study plots at NEON Harvard Forest Field Site with color and a modified legend varied by attribute type; each symbol on the legend corresponds to the shapefile type [i.e., soil plots = points, roads = lines], and study plots symbols vary by soil type.")----
-## 1
-# open plot locations
-plotLocations <- readOGR("NEON-DS-Site-Layout-Files/HARV",
-          "PlotLocations_HARV")
-
-# how many unique soils?  Two
-unique(plotLocations$soilTypeOr)
-
-# create new color palette -- topo.colors palette
-blueGreen <- c("blue","darkgreen")
-blueGreen
-
-# plot roads
-plot(lines_HARV, 
-     col=roadColors,
-     main="NEON Harvard Forest Field Site\n Study Plots by Soil Type\n One Symbol for All Types")
-
-# plot the locations 
-plot(plotLocations,
-     col=(blueGreen)[plotLocations$soilTypeOr], 
-     pch=18,
-     add=TRUE)
-
-# create line object
-lineLegendElement = c(NA,NA,1,1,1,1)
-lineLegendElement
-plotSymElements <- c(18,18,NA,NA,NA,NA)
-plotSymElements
-
-# create vector of colors
-colorElements <- c(blueGreen, roadPalette)
-colorElements
-
-# create legend 
-legend("bottomright", 
-       legend=c("Inceptisols","Histosols",levels(lines_HARV$TYPE)),
-       pch=plotSymElements, 
-       lty=lineLegendElement,
-       col=colorElements,
-       bty="n", 
-       cex=1)
-
-## 2
-# create vector of DIFFERENT plot symbols
-plSymbols <- c(15,17)[plotLocations$soilTypeOr]
-plSymbols
-
-# plot roads
-plot(lines_HARV, 
-     col=roadColors,
-     main="NEON Harvard Forest Field Site\n Study Plots by Soil Type\n Different Symbols for Types")
-
-# plot the locations 
-plot(plotLocations,
-     col=(blueGreen)[plotLocations$soilTypeOr], 
-     pch=plSymbols,
-     add=TRUE)
-
-# create line object
-lineLegendElement  <- c(NA,NA,1,1,1,1)
-lineLegendElement
-plotSymElementsMod <- c(15,17,NA,NA,NA,NA)
-plotSymElementsMod
-
-# create vector of colors
-colorElements <- c(blueGreen, roadPalette)
-colorElements
-# create legend 
-legend("bottomright", 
-       legend=c("Inceptisols","Histosols",levels(lines_HARV$TYPE)),
-       pch=plotSymElementsMod, 
-       lty=lineLegendElement,
-       col=colorElements,
-       bty="n", 
-       cex=1)
 
