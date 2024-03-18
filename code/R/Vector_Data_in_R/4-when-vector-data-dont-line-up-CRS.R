@@ -1,177 +1,133 @@
-## ----load-libraries----------------------------------------------------
-
-# load packages
-library(rgdal)  # for vector work; sp package should always load with rgdal. 
-library (raster)   # for metadata/attributes- vectors or rasters
-
-# set working directory to data folder
-# setwd("pathToDirHere")
 
 
+#安装R包
+# install.packages("sf")
+# install.packages("raster")
 
-## ----read-csv----------------------------------------------------------
+#加载R包
+library(sf)
+library(raster) 
 
-# Read the .csv file
-State.Boundary.US <- readOGR("NEON-DS-Site-Layout-Files/US-Boundary-Layers",
-          "US-State-Boundaries-Census-2014")
+# 导入边界文件
+State.Boundary.US <- st_read("NEON-DS-Site-Layout-Files/US-Boundary-Layers/US-State-Boundaries-Census-2014.shp")
 
-# look at the data structure
+# 查看数据结构
 class(State.Boundary.US)
 
-
-
-## ----find-coordinates, fig.cap="Continental U.S. state boundaries."----
-
-# view column names
-plot(State.Boundary.US, 
+# 绘制美国各州的数据
+plot(st_geometry(State.Boundary.US), 
      main="Map of Continental US State Boundaries\n US Census Bureau Data")
 
 
 
-## ----check-out-coordinates, fig.cap="Continental U.S. state boundaries with the U.S. boundary emphasized with a thicker border."----
-# Read the .csv file
-Country.Boundary.US <- readOGR("NEON-DS-Site-Layout-Files/US-Boundary-Layers",
-          "US-Boundary-Dissolved-States")
+# 导入国家边界文件
+Country.Boundary.US <- st_read("NEON-DS-Site-Layout-Files/US-Boundary-Layers/US-Boundary-Dissolved-States.shp")
 
-# look at the data structure
+# 查看数据结构
 class(Country.Boundary.US)
 
-# view column names
-plot(State.Boundary.US, 
+# 绘制美国边界
+plot(st_geometry(State.Boundary.US), 
      main="Map of Continental US State Boundaries\n US Census Bureau Data",
      border="gray40")
 
-# view column names
-plot(Country.Boundary.US, 
+plot(st_geometry(Country.Boundary.US), 
      lwd=4, 
      border="gray18",
      add=TRUE)
 
 
 
-## ----explore-units, fig.cap="Fisher Tower location represented by a point."----
 
-# Import a point shapefile 
-point_HARV <- readOGR("NEON-DS-Site-Layout-Files/HARV/",
-                      "HARVtower_UTM18N")
+
+# 导入一个点shapefile 
+point_HARV <- st_read("NEON-DS-Site-Layout-Files/HARV/HARVtower_UTM18N.shp")
 class(point_HARV)
 
-# plot point - looks ok? 
-plot(point_HARV, 
+# 绘制点 
+plot(st_geometry(point_HARV), 
      pch = 19, 
      col = "purple",
      main="Harvard Fisher Tower Location")
 
 
-## ----layer-point-on-states, fig.cap="Continental U.S. state boundaries with the U.S. boundary emphasized with a thicker border; note that the Fisher Tower point is not currently visible."----
-# plot state boundaries  
-plot(State.Boundary.US, 
+
+
+
+
+# 绘制州边界  
+plot(st_geometry(State.Boundary.US), 
      main="Map of Continental US State Boundaries \n with Tower Location",
      border="gray40")
 
-# add US border outline 
-plot(Country.Boundary.US, 
+# 添加美国边界轮廓 
+plot(st_geometry(Country.Boundary.US), 
      lwd=4, 
      border="gray18",
      add=TRUE)
 
-# add point tower location
-plot(point_HARV, 
+# 添加塔点位置
+plot(st_geometry(point_HARV), 
      pch = 19, 
      col = "purple",
      add=TRUE)
 
 
+??st_crs
 
-## ----crs-sleuthing-----------------------------------------------------
+# 查看塔点数据的 CRS
+st_crs(point_HARV)
 
-# view CRS of our site data
-crs(point_HARV)
-
-# view crs of census data
-crs(State.Boundary.US)
-crs(Country.Boundary.US)
+# 查看边界数据的 CRS
+st_crs(State.Boundary.US)
+st_crs(Country.Boundary.US)
 
 
-## ----view-extent-------------------------------------------------------
 
-# extent for HARV in UTM
+
+# UTM中HARV的范围
 extent(point_HARV)
 
-# extent for object in geographic
+# geographic中对象的范围
 extent(State.Boundary.US)
 
 
 
-## ----crs-sptranform----------------------------------------------------
+
+??st_transform
+
 
 # reproject data
-point_HARV_WGS84 <- spTransform(point_HARV,
-                                crs(State.Boundary.US))
+point_HARV_WGS84 <- st_transform(point_HARV,
+                                st_crs(State.Boundary.US))
 
-# what is the CRS of the new object
-crs(point_HARV_WGS84)
-# does the extent look like decimal degrees?
+# 新对象的 CRS 是多少
+st_crs(point_HARV_WGS84)
+# 范围看起来像十进制度数吗？
 extent(point_HARV_WGS84)
 
 
-## ----plot-again, fig.cap="Continental U.S. state boundaries with the U.S. country border emphasized with a thicker border and with the Fisher Tower represented as a point."----
 
-# plot state boundaries  
-plot(State.Boundary.US, 
+
+
+
+# 绘制州边界  
+plot(st_geometry(State.Boundary.US), 
      main="Map of Continental US State Boundaries\n With Fisher Tower Location",
      border="gray40")
 
-# add US border outline 
-plot(Country.Boundary.US, 
+# 添加美国边境轮廓
+plot(st_geometry(Country.Boundary.US), 
      lwd=4, 
      border="gray18",
      add=TRUE)
 
-# add point tower location
-plot(point_HARV_WGS84, 
+# 添加塔点位置
+plot(st_geometry(point_HARV_WGS84), 
      pch = 19, 
      col = "purple",
      add=TRUE)
 
 
-
-## ----challenge-code-MASS-Map,  include=TRUE, results="hide", echo=FALSE, warning=FALSE, fig.cap="A close-up view of the northeastern U.S. with the Fisher Tower location as a point symbol."----
-# import mass boundary layer
-# read the .csv file
-NE.States.Boundary.US <- readOGR("NEON-DS-Site-Layout-Files/US-Boundary-Layers",
-          "Boundary-US-State-NEast")
-# view crs
-crs(NE.States.Boundary.US)
-
-# create CRS object
-UTM_CRS <- crs(point_HARV)
-UTM_CRS
-
-# reproject line and point data
-NE.States.Boundary.US.UTM  <- spTransform(NE.States.Boundary.US,
-                                UTM_CRS)
-NE.States.Boundary.US.UTM
-
-# plot state boundaries  
-plot(NE.States.Boundary.US.UTM , 
-     main="Map of Northeastern US\n With Fisher Tower Location - UTM Zone 18N",
-     border="gray18",
-     lwd=2)
-
-# add point tower location
-plot(point_HARV, 
-     pch = 19, 
-     col = "purple",
-     add=TRUE)
-
-# add legend
-# to create a custom legend, we need to fake it
-legend("bottomright", 
-       legend=c("State Boundary","Fisher Tower"),
-       lty=c(1,NA),
-       pch=c(NA,19),
-       col=c("gray18","purple"),
-       bty="n")
 
 
