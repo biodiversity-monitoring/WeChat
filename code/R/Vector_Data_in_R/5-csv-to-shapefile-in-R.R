@@ -1,135 +1,123 @@
-## ----load-libraries----------------------------------------------------
-
-# load packages
-library(rgdal)  # for vector work; sp package should always load with rgdal 
-library (raster)   # for metadata/attributes- vectors or rasters
-
-# set working directory to data folder
-# setwd("pathToDirHere")
+# author: Biodiversity Monitoring
 
 
+#设置路径，提前将数据拷贝到路径下并解压(解压后的文件名为NEON-DS-Site-Layout-Files)
+setwd("C:/users/……")
+getwd()
 
-## ----read-csv----------------------------------------------------------
+#安装R包
+# install.packages("sf")
+# install.packages("raster")
 
-# Read the .csv file
+#加载R包
+library(sf)
+library(raster) 
+
+
+
+
+#  导入.csv文件
 plot.locations_HARV <- 
   read.csv("NEON-DS-Site-Layout-Files/HARV/HARV_PlotLocations.csv",
            stringsAsFactors = FALSE)
 
-# look at the data structure
+# 查看数据结构
 str(plot.locations_HARV)
 
 
-
-## ----find-coordinates--------------------------------------------------
-
-# view column names
+# 查看列名
 names(plot.locations_HARV)
 
 
 
-## ----check-out-coordinates---------------------------------------------
-# view first 6 rows of the X and Y columns
+## 检查坐标
+# 查看 X 列和 Y 列的前 6 行
 head(plot.locations_HARV$easting)
 head(plot.locations_HARV$northing)
 
-# note that  you can also call the same two columns using their COLUMN NUMBER
-# view first 6 rows of the X and Y columns
+# 注意，也可以使用 COLUMN 编号调用相同的两列
+# 查看 X 列和 Y 列的前 6 行
 head(plot.locations_HARV[,1])
 head(plot.locations_HARV[,2])
 
 
 
-## ----view-CRS-info-----------------------------------------------------
-# view first 6 rows of the X and Y columns
+## 查看 CRS 信息
+# 查看 X 列和 Y 列的前 6 行
 head(plot.locations_HARV$geodeticDa)
 head(plot.locations_HARV$utmZone)
 
 
 
-## ----explore-units-----------------------------------------------------
+# 导入线shapefile
+lines_HARV <- st_read("NEON-DS-Site-Layout-Files/HARV/HARV_roads.shp")
 
-# Import the line shapefile
-lines_HARV <- readOGR( "NEON-DS-Site-Layout-Files/HARV/", "HARV_roads")
+# 查看 CRS
+st_crs(lines_HARV)
 
-# view CRS
-crs(lines_HARV)
-
-# view extent
+# 查看 extent
 extent(lines_HARV)
 
 
 
-## ----crs-object--------------------------------------------------------
-# create crs object
-utm18nCRS <- crs(lines_HARV)
-utm18nCRS
 
-class(utm18nCRS)
-
-
-## ----convert-csv-shapefile---------------------------------------------
-# note that the easting and northing columns are in columns 1 and 2
-plot.locationsSp_HARV <- SpatialPointsDataFrame(plot.locations_HARV[,1:2],
-                    plot.locations_HARV,    #the R object to convert
-                    proj4string = utm18nCRS)   # assign a CRS 
-                                          
-# look at CRS
-crs(plot.locationsSp_HARV)
+# 创建sf对象
+plot.locations_HARV <- st_as_sf(plot.locations_HARV, coords = c(x = "easting", y = "northing"))
+plot.locations_HARV
+# 查看 CRS
+st_crs(plot.locations_HARV)
 
 
+## 方案 1 和方案 2只需运行一个！
 
-## ----assign-crs, eval=FALSE--------------------------------------------
-## # first, convert the data.frame to spdf
-## r <- SpatialPointsDataFrame(plot.locations_HARV[,1:2],
-##                     plot.locations_HARV)
-## 
-## # second, assign the CRS in one of two ways
-## r <- crs("+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs
-## 				 +ellps=WGS84 +towgs84=0,0,0" )
-## # or
-## 
-## crs(r) <- "+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs
-## 				 +ellps=WGS84 +towgs84=0,0,0"
-## 
+# 方案 1：借用CRS
+# 将lines_HARV的crs指定给plot.locations_HARV
+plot.locations_HARV <- st_set_crs(plot.locations_HARV, st_crs(lines_HARV))
+# 查看 CRS
+st_crs(plot.locationsSp_HARV)
 
 
-## ----plot-data-points, fig.cap="NEON Harvard Forest plot locations."----
-# plot spatial object
-plot(plot.locationsSp_HARV, 
+# 方案 2：指定CRS
+# 通过EPSG码指定plot.locations_HARV的crs
+st_crs(plot.locations_HARV) <- st_crs(32618)
+# 查看 CRS
+st_crs(plot.locations_HARV)
+
+
+
+
+# 绘制sf对象
+plot(st_geometry(plot.locationsSp_HARV), 
      main="Map of Plot Locations")
 
 
 
-## ----create-aoi-boundary-----------------------------------------------
-# create boundary object 
-aoiBoundary_HARV <- readOGR("NEON-DS-Site-Layout-Files/HARV/",
-                            "HarClip_UTMZ18")
 
 
-## ----plot-data, fig.cap="Area of Interest Boundary (NEON Harvard Forest Field Site)."----
-# plot Boundary
-plot(aoiBoundary_HARV,
+# 创建边界对象
+aoiBoundary_HARV <- st_read("NEON-DS-Site-Layout-Files/HARV/HarClip_UTMZ18.shp")
+
+# 绘制Boundary
+plot(st_geometry(aoiBoundary_HARV),
      main="AOI Boundary\nNEON Harvard Forest Field Site")
 
-# add plot locations
-plot(plot.locationsSp_HARV, 
+# 添加样地位置
+plot(st_geometry(plot.locationsSp_HARV), 
      pch=8, add=TRUE)
 
-# no plots added, why? CRS?
+# 没有样地被添加, why? CRS?
 # view CRS of each
-crs(aoiBoundary_HARV)
-crs(plot.locationsSp_HARV)
+st_crs(aoiBoundary_HARV)
+st_crs(plot.locationsSp_HARV)
 
 
 
-## ----compare-extents, fig.cap="Comparison of extent boundaries between plot locations and AOI spatial object at NEON Harvard Forest Field Site."----
-# view extent of each
+
+
+#查看范围
 extent(aoiBoundary_HARV)
 extent(plot.locationsSp_HARV)
 
-# add extra space to right of plot area; 
-# par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
 
 plot(extent(plot.locationsSp_HARV),
      col="purple", 
@@ -154,29 +142,28 @@ legend("bottomright",
 
 
 
-## ----set-plot-extent, fig.cap="Plot locations and AOI boundary at NEON Harvard Forest Field Site with modified extents."----
 
 plotLoc.extent <- extent(plot.locationsSp_HARV)
 plotLoc.extent
-# grab the x and y min and max values from the spatial plot locations layer
+# 从空间绘图位置层抓取 x 和 y 的最小值和最大值
 xmin <- plotLoc.extent@xmin
 xmax <- plotLoc.extent@xmax
 ymin <- plotLoc.extent@ymin
 ymax <- plotLoc.extent@ymax
 
-# adjust the plot extent using x and ylim
-plot(aoiBoundary_HARV,
+# 使用 xlim 和 ylim 调整绘图范围
+plot(st_geometry(aoiBoundary_HARV),
      main="NEON Harvard Forest Field Site\nModified Extent",
      border="darkgreen",
      xlim=c(xmin,xmax),
      ylim=c(ymin,ymax))
 
-plot(plot.locationsSp_HARV, 
+plot(st_geometry(plot.locationsSp_HARV), 
      pch=8,
 		 col="purple",
 		 add=TRUE)
 
-# add a legend
+# 添加图例
 legend("bottomright", 
        legend=c("Plots", "AOI Boundary"),
        pch=c(8,NA),
@@ -186,112 +173,10 @@ legend("bottomright",
        cex=.8)
 
 
+# 导出shapefile
 
-## ----challenge-code-phen-plots, echo=FALSE, results="hide", warning=FALSE, fig.cap=c("Vegetation and phenology plot locations at NEON Harvard Forest Field Site; one phenology plot is missing.", "Comparison of extent boundaries between vegetation and phenology plot locations at NEON Harvard Forest Field Site.", "Vegetation and phenology plot locations at NEON Harvard Forest Field Site; all points are visible.")----
-## 1
-# Read the .csv file
-newPlot.locations_HARV <- 
-  read.csv("NEON-DS-Site-Layout-Files/HARV/HARV_2NewPhenPlots.csv",
-           stringsAsFactors = FALSE)
-
-# look at the data structure -> locations in lat/long
-str(newPlot.locations_HARV)
-
-## 2
-## Find/ establish a CRS for new points
-# Import the US boundary which is in a geographic WGS84 coordinate system
-Country.Boundary.US <- readOGR("NEON-DS-Site-Layout-Files/US-Boundary-Layers",
-          "US-Boundary-Dissolved-States")
-
-# grab the geographic CRS
-geogCRS <- crs(Country.Boundary.US)
-geogCRS
-
-## Convert to spatial data frame
-# note that the easting and northing columns are in columns 1 and 2
-newPlot.Sp.HARV <- SpatialPointsDataFrame(newPlot.locations_HARV[,2:1],
-                    newPlot.locations_HARV,    # the R object to convert
-                    proj4string = geogCRS)   # assign a CRS 
-                                         
-# view CRS
-crs(newPlot.Sp.HARV)
-
-## We now have the data imported and in WGS84 Lat/Long. We want to map with plot
-# locations in UTM so we'll have to reproject. 
-
-# remember we have a UTM Zone 18N crs object from previous code
-utm18nCRS
-
-# reproject the new points into UTM using `utm18nCRS`
-newPlot.Sp.HARV.UTM <- spTransform(newPlot.Sp.HARV,
-                                  utm18nCRS)
-# check new plot CRS
-crs(newPlot.Sp.HARV.UTM)
-
-## 3
-# create plot
-plot(plot.locationsSp_HARV, 
-     main="NEON Harvard Forest Field Site \nPlot Locations" )
-
-plot(newPlot.Sp.HARV.UTM, 
-     add=TRUE, pch=20, col="darkgreen")
-
-# oops - looks like we are missing a point on our new plot. let's compare
-# the spatial extents of both objects!
-extent(plot.locationsSp_HARV)
-extent(newPlot.Sp.HARV.UTM)
-
-# when you plot in base plot, if the extent isn't specified, then the data that
-# is added FIRST will define the extent of the plot
-plot(extent(plot.locationsSp_HARV),
-     main="Comparison of Spatial Object Extents\nPlot Locations vs New Plot Locations")
-plot(extent(newPlot.Sp.HARV.UTM),
-     col="darkgreen",
-     add=TRUE)
-
-# looks like the green box showing the newPlot extent extends
-# beyond the plot.locations extent.
-
-# We need to grab the x min and max and y min from our original plots
-# but then the ymax from our new plots
-
-originalPlotExtent <- extent(plot.locationsSp_HARV)
-newPlotExtent <- extent(newPlot.Sp.HARV.UTM)
-
-# set xmin and max
-xmin <- originalPlotExtent@xmin
-xmax <- originalPlotExtent@xmax
-ymin <- originalPlotExtent@ymin
-ymax <- newPlotExtent@ymax
-
-# 3 again... re-plot
-# try again but this time specify the x and ylims
-# note: we could also write a function that would harvest the smallest and
-# largest
-# x and y values from an extent object. This is beyond the scope of this tutorial.
-plot(plot.locationsSp_HARV, 
-     main="NEON Harvard Forest Field Site\nVegetation & Phenology Plots",
-     pch=8,
-     col="purple",
-     xlim=c(xmin,xmax),
-     ylim=c(ymin,ymax))
-
-plot(newPlot.Sp.HARV.UTM, 
-     add=TRUE, pch=20, col="darkgreen")
-
-# when we create a legend in R, we need to specify the text for each item 
-# listed in the legend.
-legend("bottomright", 
-       legend=c("Vegetation Plots", "Phenology Plots"),
-       pch=c(8,20), 
-       bty="n", 
-       col=c("purple","darkgreen"),
-       cex=1.3)
+st_write(plot.locationsSp_HARV, "样地位置.shp")
 
 
-## ----write-shapefile, warnings="hide", eval=FALSE----------------------
-## # write a shapefile
-## writeOGR(plot.locationsSp_HARV, getwd(),
-##          "PlotLocations_HARV", driver="ESRI Shapefile")
-## 
+
 
